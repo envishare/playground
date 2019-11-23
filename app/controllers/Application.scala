@@ -8,7 +8,7 @@ import play.api.Configuration
 import sangria.execution._
 import sangria.parser.{QueryParser, SyntaxError}
 import sangria.marshalling.playJson._
-import models.{CharacterRepo, SchemaDefinition}
+import models.{ActivityRepo, EnvishareService, SchemaDefinition}
 import sangria.execution.deferred.DeferredResolver
 import sangria.renderer.SchemaRenderer
 import sangria.slowlog.SlowLog
@@ -55,14 +55,14 @@ class Application @Inject() (system: ActorSystem, config: Configuration) extends
 
       // query parsed successfully, time to execute it!
       case Success(queryAst) ⇒
-        Executor.execute(SchemaDefinition.StarWarsSchema, queryAst, new CharacterRepo,
+        Executor.execute(SchemaDefinition.StarWarsSchema, queryAst, new EnvishareService,
             operationName = operation,
             variables = variables getOrElse Json.obj(),
-            deferredResolver = DeferredResolver.fetchers(SchemaDefinition.characters),
+            deferredResolver = DeferredResolver.fetchers(SchemaDefinition.allActivities),
             exceptionHandler = exceptionHandler,
             queryReducers = List(
-              QueryReducer.rejectMaxDepth[CharacterRepo](15),
-              QueryReducer.rejectComplexQueries[CharacterRepo](4000, (_, _) ⇒ TooComplexQueryError)),
+              QueryReducer.rejectMaxDepth[EnvishareService](15),
+              QueryReducer.rejectComplexQueries[EnvishareService](4000, (_, _) ⇒ TooComplexQueryError)),
             middleware = if (tracing) SlowLog.apolloTracing :: Nil else Nil)
           .map(Ok(_))
           .recover {
