@@ -1,0 +1,21 @@
+version: "2.3"
+services:
+  elastic_search:
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    expose:
+      - "9200"
+    image:
+      "docker.elastic.co/elasticsearch/elasticsearch:7.4.2"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.license.self_generated.type=basic
+      - ELASTIC_PASSWORD=doNotChange
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "elastic:doNotChange", "http://localhost:9200/_cluster/health?wait_for_status=green&timeout=50s"]
+      interval: 10s
+      timeout: 10s
+      retries: 4
+      start_period: 5s

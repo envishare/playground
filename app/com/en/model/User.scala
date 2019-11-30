@@ -1,4 +1,4 @@
-package models
+package com.en.model
 
 import java.time.{Instant, LocalDateTime}
 import java.util.UUID

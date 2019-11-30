@@ -1,6 +1,8 @@
-package models
+package com.en.services
 
 import java.util.UUID
+
+import com.en.model._
 
 object UserService {
 

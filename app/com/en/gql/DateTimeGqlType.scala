@@ -1,10 +1,10 @@
-package models
+package com.en.gql
 
+import java.time.Instant
 import java.time.format.DateTimeParseException
-import java.time.{Instant, LocalDateTime}
 
-import sangria.schema._
 import sangria.ast
+import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 
 object DateTimeGqlType {

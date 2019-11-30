@@ -34,7 +34,7 @@
       # To run our node.js program we're going to use a systemd service
       # We can configure the service to automatically start on boot and to restart
       # the process in case it crashes
-      systemd.services.helloserver = {
+      systemd.com.en.services.helloserver = {
         description = "Hello world application";
         # Start the service after the network is available
         after = [ "network.target" ];

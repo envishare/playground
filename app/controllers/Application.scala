@@ -8,22 +8,34 @@ import play.api.Configuration
 import sangria.execution._
 import sangria.parser.{QueryParser, SyntaxError}
 import sangria.marshalling.playJson._
-import models.{ActivityRepo, EnvishareService, SchemaDefinition}
+import com.en.services.{EnvishareService, _}
+import com.en.gql._
 import sangria.execution.deferred.DeferredResolver
 import sangria.renderer.SchemaRenderer
 import sangria.slowlog.SlowLog
+import play.api.libs.ws._
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
-class Application @Inject() (system: ActorSystem, config: Configuration) extends InjectedController {
+class Application @Inject()(
+                             system: ActorSystem,
+                             wsClient: WSClient,
+                             config: Configuration,
+                             envishareService: EnvishareService
+                           ) extends InjectedController {
+
   import system.dispatcher
 
+  lazy val exceptionHandler = ExceptionHandler {
+    case (_, error@TooComplexQueryError) ⇒ HandledException(error.getMessage)
+    case (_, error@MaxQueryDepthReachedError(_)) ⇒ HandledException(error.getMessage)
+  }
   val googleAnalyticsCode = config.getOptional[String]("gaCode")
   val defaultGraphQLUrl = config.getOptional[String]("defaultGraphQLUrl").getOrElse(s"http://localhost:${config.getOptional[Int]("http.port").getOrElse(9000)}/graphql")
 
   def index = Action {
-    Ok(views.html.index(googleAnalyticsCode,defaultGraphQLUrl))
+    Ok(views.html.index(googleAnalyticsCode, defaultGraphQLUrl))
   }
 
   def playground = Action {
@@ -34,19 +46,6 @@ class Application @Inject() (system: ActorSystem, config: Configuration) extends
     executeQuery(query, variables map parseVariables, operation, isTracingEnabled(request))
   }
 
-  def graphqlBody = Action.async(parse.json) { request ⇒
-    val query = (request.body \ "query").as[String]
-    val operation = (request.body \ "operationName").asOpt[String]
-
-    val variables = (request.body \ "variables").toOption.flatMap {
-      case JsString(vars) ⇒ Some(parseVariables(vars))
-      case obj: JsObject ⇒ Some(obj)
-      case _ ⇒ None
-    }
-
-    executeQuery(query, variables, operation, isTracingEnabled(request))
-  }
-
   private def parseVariables(variables: String) =
     if (variables.trim == "" || variables.trim == "null") Json.obj() else Json.parse(variables).as[JsObject]
 
@@ -55,15 +54,15 @@ class Application @Inject() (system: ActorSystem, config: Configuration) extends
 
       // query parsed successfully, time to execute it!
       case Success(queryAst) ⇒
-        Executor.execute(SchemaDefinition.StarWarsSchema, queryAst, new EnvishareService,
-            operationName = operation,
-            variables = variables getOrElse Json.obj(),
-            deferredResolver = DeferredResolver.fetchers(SchemaDefinition.allActivities),
-            exceptionHandler = exceptionHandler,
-            queryReducers = List(
-              QueryReducer.rejectMaxDepth[EnvishareService](15),
-              QueryReducer.rejectComplexQueries[EnvishareService](4000, (_, _) ⇒ TooComplexQueryError)),
-            middleware = if (tracing) SlowLog.apolloTracing :: Nil else Nil)
+        Executor.execute(SchemaDefinition.activitySchema, queryAst, envishareService,
+          operationName = operation,
+          variables = variables getOrElse Json.obj(),
+          deferredResolver = DeferredResolver.fetchers(SchemaDefinition.allActivities),
+          exceptionHandler = exceptionHandler,
+          queryReducers = List(
+            QueryReducer.rejectMaxDepth[EnvishareService](15),
+            QueryReducer.rejectComplexQueries[EnvishareService](4000, (_, _) ⇒ TooComplexQueryError)),
+          middleware = if (tracing) SlowLog.apolloTracing :: Nil else Nil)
           .map(Ok(_))
           .recover {
             case error: QueryAnalysisError ⇒ BadRequest(error.resolveError)
@@ -84,14 +83,23 @@ class Application @Inject() (system: ActorSystem, config: Configuration) extends
 
   def isTracingEnabled(request: Request[_]) = request.headers.get("X-Apollo-Tracing").isDefined
 
-  def renderSchema = Action {
-    Ok(SchemaRenderer.renderSchema(SchemaDefinition.StarWarsSchema))
+  def graphqlBody = Action.async(parse.json) { request ⇒
+    val query = (request.body \ "query").as[String]
+    val operation = (request.body \ "operationName").asOpt[String]
+
+    val variables = (request.body \ "variables").toOption.flatMap {
+      case JsString(vars) ⇒ Some(parseVariables(vars))
+      case obj: JsObject ⇒ Some(obj)
+      case _ ⇒ None
+    }
+
+    executeQuery(query, variables, operation, isTracingEnabled(request))
   }
 
-  lazy val exceptionHandler = ExceptionHandler {
-    case (_, error @ TooComplexQueryError) ⇒ HandledException(error.getMessage)
-    case (_, error @ MaxQueryDepthReachedError(_)) ⇒ HandledException(error.getMessage)
+  def renderSchema = Action {
+    Ok(SchemaRenderer.renderSchema(SchemaDefinition.activitySchema))
   }
 
   case object TooComplexQueryError extends Exception("Query is too expensive.")
+
 }
