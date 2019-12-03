@@ -1,5 +1,6 @@
 package com.en.gql
 
+import akka.http.scaladsl.model.headers.ContentDispositionTypes.attachment
 import com.en.model._
 import sangria.execution.deferred.{Fetcher, HasId}
 import sangria.schema.{Argument, BooleanType, EnumType, EnumValue, Field, ListType, LongType, ObjectType, OptionInputType, OptionType, Schema, StringType, fields}
@@ -18,7 +19,7 @@ object SchemaDefinition {
     */
   val allActivities: Fetcher[EnvishareService, Activity, Activity, String] =
     Fetcher.caching((ctx: EnvishareService, ids: Seq[String]) ⇒
-      Future.successful(ids.flatMap(id ⇒ ctx.getActivities(None))))(HasId(_.id))
+      Future.successful(ids.flatMap(id ⇒ ctx.getActivities(ActivityStatus.PENDING))))(HasId(_.id))
 
   val StatusEnum = EnumType(
     "Status",
@@ -115,6 +116,10 @@ object SchemaDefinition {
             StringType,
             Some("The user name of the user."),
             resolve = _.value.userName),
+          Field("userSecret",
+            StringType,
+            Some("The user name of the user."),
+            resolve = _.value.userSecret),
           Field("createdAt",
             DateTimeGqlType.UtcDateTimeType,
             Some("The user created date and time."),
@@ -148,10 +153,14 @@ object SchemaDefinition {
             OptionType(StringType),
             Some("The name of the activity."),
             resolve = _.value.name),
-          //          Field("status",
-          //            StatusEnum,
-          //            Some("The status of the activity."),
-          //            resolve = _.value.status),
+          Field("content",
+            OptionType(StringType),
+            Some("The content of the activity."),
+            resolve = _.value.content),
+          Field("status",
+            StatusEnum,
+            Some("The status of the activity."),
+            resolve = _.value.status),
           Field("createdAt",
             DateTimeGqlType.UtcDateTimeType,
             Some("The createdAt of the activity."),
@@ -171,7 +180,11 @@ object SchemaDefinition {
           Field("review",
             ListType(ActivityReviewInterface),
             Some("The reviews of the activity."),
-            resolve = _.value.reviews)
+            resolve = _.value.reviews),
+          Field("attachments",
+            ListType(StringType),
+            Some("The attachments of the activity."),
+            resolve = _.value.attachments)
         )
     )
 
@@ -201,7 +214,7 @@ object SchemaDefinition {
 
   val ActivityStatusArg = Argument(
     "status",
-    OptionInputType(StatusEnum),
+    StatusEnum,
     description = "status of the requesting activities."
   )
 
@@ -212,6 +225,20 @@ object SchemaDefinition {
   )
 
   val activityNameArg = Argument("name", StringType, description = "name of the activity")
+  val activityIdArg = Argument("id", StringType, description = "id of the activity")
+  val activityAttachmentArg = Argument("attachment", StringType,
+    description = "attachment of the activity")
+  val userIdArg = Argument("userId", StringType, description = "user id of the user")
+  val userPasswordArg = Argument("password", StringType, description = "user password of the user")
+  val userCreatedByArg = Argument("userCreatedBy", StringType,
+    description = "created user of the user")
+  val userNameArg = Argument("userName", StringType, description = "userName of the user")
+  val userFirstNameArg = Argument("firstName", StringType, description = "userName of the user")
+  val userLastNameArg = Argument("lastName", StringType, description = "user last name of the user")
+  val userSecretArg = Argument("userSecret", StringType, description = "secret of the user")
+  val reviewIdArg = Argument("reviewId", StringType, description = "id of the activity review")
+  val reviewDetailsArg = Argument("review", StringType,
+    description = "content of the activity review")
   val activityContentArg = Argument("content", StringType,
     description = "content details of the activity")
   val activityCreatedByArg = Argument("createdBy", StringType,
@@ -236,6 +263,10 @@ object SchemaDefinition {
         Users,
         arguments = ActiveUserArg :: Nil,
         resolve = ctx ⇒ ctx.ctx.getUsers(ctx arg ActiveUserArg)),
+      Field("user",
+        OptionType(UserInterface),
+        arguments = userIdArg :: Nil,
+        resolve = ctx ⇒ ctx.ctx.getUser(ctx arg userIdArg)),
       Field("userRoles",
         UserRoles,
         arguments = ActiveUserArg :: Nil,
@@ -258,13 +289,128 @@ object SchemaDefinition {
           activityContent = c.arg(activityContentArg),
           activityCreatedBy = c.arg(activityCreatedByArg)
         )
+      ),
+      Field(
+        name = "updateActivity",
+        arguments = List(
+          activityIdArg,
+          activityNameArg,
+          activityContentArg,
+          ActivityStatusArg,
+          activityModifiedByArg
+        ),
+        fieldType = ActivityInterface,
+        resolve = c => c.ctx.updateActivity(
+          activityId = c.arg(activityIdArg),
+          activityName = c.arg(activityNameArg),
+          activityContent = c.arg(activityContentArg),
+          activityStatus = c.arg(ActivityStatusArg),
+          activityModifiedBy = c.arg(activityModifiedByArg)
+        )
+      ),
+      Field(
+        name = "addReview",
+        arguments = List(
+          activityIdArg,
+          reviewDetailsArg,
+          activityModifiedByArg
+        ),
+        fieldType = ActivityInterface,
+        resolve = c => c.ctx.addReview(
+          activityId = c.arg(activityIdArg),
+          reviewDetails = c.arg(reviewDetailsArg),
+          activityModifiedBy = c.arg(activityModifiedByArg)
+        )
+      ),
+      Field(
+        name = "deleteActivity",
+        arguments = List(
+          activityIdArg
+        ),
+        fieldType = ActivityInterface,
+        resolve = c => c.ctx.deleteActivity(
+          activityId = c.arg(activityIdArg)
+        )
+      ),
+      Field(
+        name = "deleteReview",
+        arguments = List(
+          activityIdArg,
+          reviewIdArg,
+          activityModifiedByArg
+        ),
+        fieldType = ActivityInterface,
+        resolve = c => c.ctx.deleteReview(
+          activityId = c.arg(activityIdArg),
+          reviewId = c.arg(reviewIdArg),
+          modifiedBy = c.arg(activityModifiedByArg)
+        )
+      ),
+      Field(
+        name = "updateReview",
+        arguments = List(
+          activityIdArg,
+          reviewIdArg,
+          reviewDetailsArg,
+          activityModifiedByArg
+        ),
+        fieldType = ActivityInterface,
+        resolve = c => c.ctx.updateReview(
+          activityId = c.arg(activityIdArg),
+          reviewId = c.arg(reviewIdArg),
+          reviewDetails = c.arg(reviewDetailsArg),
+          activityModifiedBy = c.arg(activityModifiedByArg)
+        )
+      ),
+      Field(
+        name = "addActivityAttachment",
+        arguments = List(
+          activityIdArg,
+          activityAttachmentArg,
+          activityModifiedByArg
+        ),
+        fieldType = ActivityInterface,
+        resolve = c => c.ctx.addActivityAttachment(
+          activityId = c.arg(activityIdArg),
+          attachment = c.arg(activityAttachmentArg),
+          activityModifiedBy = c.arg(activityModifiedByArg)
+        )
+      ),
+      Field(
+        name = "deleteActivityAttachment",
+        arguments = List(
+          activityIdArg,
+          activityAttachmentArg,
+          activityModifiedByArg
+        ),
+        fieldType = ActivityInterface,
+        resolve = c => c.ctx.deleteActivityAttachment(
+          activityId = c.arg(activityIdArg),
+          attachment = c.arg(activityAttachmentArg),
+          activityModifiedBy = c.arg(activityModifiedByArg)
+        )
+      ),
+      Field(
+        name = "createUser",
+        arguments = List(
+          userIdArg,
+          userFirstNameArg,
+          userLastNameArg,
+          userNameArg,
+          userSecretArg,
+          userCreatedByArg
+        ),
+        fieldType = UserInterface,
+        resolve = c => c.ctx.createUser(
+          userId = c.arg(userIdArg),
+          firstName = c.arg(userFirstNameArg),
+          userLastName = c.arg(userLastNameArg),
+          userName = c.arg(userNameArg),
+          userSecret = c.arg(userSecretArg),
+          userCreatedBy = c.arg(userCreatedByArg)
+        )
       )
     )
-
   private val Mutation = ObjectType(name = "Mutation", fields = mutation)
-
-
-  val activitySchema = Schema(Query, Some(Mutation))
-
-
+  val activitySchema: Schema[EnvishareService, Unit] = Schema(Query, Some(Mutation))
 }

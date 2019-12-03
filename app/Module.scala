@@ -1,5 +1,5 @@
 import com.en.repo.{ElasticRepository, ElasticRepositoryImpl}
-import com.en.services.{ActivityRepo, ActivityRepoImpl, EnvishareService, EnvishareServiceImpl}
+import com.en.services.{ActivityRepo, ActivityRepoImpl, EnvishareService, EnvishareServiceImpl, UserRepo, UserRepoImpl}
 import com.google.inject.AbstractModule
 
 class Module extends AbstractModule {
@@ -13,5 +13,8 @@ class Module extends AbstractModule {
 
     bind(classOf[ActivityRepo])
       .to(classOf[ActivityRepoImpl])
+
+    bind(classOf[UserRepo])
+      .to(classOf[UserRepoImpl])
   }
 }

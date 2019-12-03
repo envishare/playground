@@ -4,8 +4,10 @@ import java.time.{Instant, LocalDateTime}
 import java.util
 import java.util.UUID
 
+import com.en.model.ActivityStatus.ActivityStatus
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
 import collection.JavaConverters._
 
 trait IActivity {
@@ -14,6 +16,8 @@ trait IActivity {
   def name: Option[String]
 
   def content: String
+
+  def status: ActivityStatus
 
   def createdAt: Instant
 
@@ -24,6 +28,8 @@ trait IActivity {
   def modifiedAt: Option[Instant]
 
   def reviews: List[ActivityReview]
+
+  def attachments: List[String]
 }
 
 trait IActivityReview {
@@ -42,12 +48,16 @@ case class Activity(
                      id: String = UUID.randomUUID().toString,
                      name: Option[String],
                      content: String = "",
+                     status: ActivityStatus = ActivityStatus.PENDING,
                      createdAt: Instant = Instant.now,
                      createdBy: String = UUID.randomUUID().toString,
                      modifiedAt: Option[Instant] = Some(Instant.now),
                      modifiedBy: Option[String] = Some(UUID.randomUUID().toString),
-                     reviews: List[ActivityReview] = Seq.empty.toList
-                   ) extends IActivity
+                     reviews: List[ActivityReview] = Seq.empty.toList,
+                     attachments: List[String] = Seq.empty.toList
+                   ) extends IActivity {
+
+}
 
 case class ActivityReference(
                               parentActivity: Option[Activity],
@@ -67,6 +77,7 @@ object Activity {
       activityFieldMap.get("id"),
       activityFieldMap.get("name"),
       activityFieldMap.get("content"),
+      ActivityStatus.from(activityFieldMap.get("status")),
       activityFieldMap.get("createdAt"),
       activityFieldMap.get("createdBy"),
       activityFieldMap.get("modifiedAt"),
@@ -78,6 +89,7 @@ object Activity {
         Some(id),
         name,
         Some(content),
+        status,
         Some(createdAt),
         Some(createdBy),
         modifiedAt,
@@ -90,6 +102,7 @@ object Activity {
             id.toString,
             name.map(_.toString),
             content.toString,
+            status,
             Instant.parse(createdAt.toString),
             createdBy.toString,
             modifiedAt.map(d => Instant.parse(d.toString)),
@@ -97,31 +110,36 @@ object Activity {
             Seq.empty.toList
           ))
       case _ =>
-        throw new RuntimeException(
-          "Unable to convert Map values to Activity Object.")
+        throw InvalidActivityFieldMapValues()
     }
   }
+
+  import ActivityStatus._
 
   implicit val activityReads: Reads[Activity] = (
     (JsPath \ "id").read[String] and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "content").read[String] and
+      (JsPath \ "status").read[ActivityStatus] and
       (JsPath \ "createdAt").read[Instant] and
       (JsPath \ "createdBy").read[String] and
       (JsPath \ "modifiedAt").readNullable[Instant] and
       (JsPath \ "modifiedBy").readNullable[String] and
-      (JsPath \ "reviews").read[List[ActivityReview]]
+      (JsPath \ "reviews").read[List[ActivityReview]] and
+      (JsPath \ "attachments").read[List[String]]
     ) (Activity.apply _)
 
   implicit val activityOWrites: OWrites[Activity] = (
     (JsPath \ 'id).write[String] and
       (JsPath \ 'name).writeNullable[String] and
       (JsPath \ 'content).write[String] and
+      (JsPath \ 'status).write[ActivityStatus] and
       (JsPath \ 'createdAt).write[Instant] and
       (JsPath \ 'createdBy).write[String] and
       (JsPath \ 'modifiedAt).writeNullable[Instant] and
       (JsPath \ 'modifiedBt).writeNullable[String] and
-      (JsPath \ 'reviews).write[List[ActivityReview]]
+      (JsPath \ 'reviews).write[List[ActivityReview]] and
+      (JsPath \ 'attachments).write[List[String]]
     ) (unlift(Activity.unapply))
 }
 
@@ -152,10 +170,13 @@ object ActivityReference {
             parentActivity.map(p => Activity.fromMap(p.asInstanceOf[util.Map[String, AnyRef]])).get,
             childActivity.map(p => Activity.fromMap(p.asInstanceOf[util.Map[String, AnyRef]])).get
           ))
-
-      case _ => throw new RuntimeException("Unable to convert Map values to Activity Object.")
+      case _ => throw InvalidActivityFieldMapValues()
     }
   }
+}
+
+case class InvalidActivityFieldMapValues() extends IllegalStateException {
+  "Unable to convert Map values to Activity Object."
 }
 
 object ActivityReview {
@@ -173,10 +194,8 @@ object ActivityReview {
 
     val activityFieldMap = results.asScala
     (activityFieldMap.get("id"), activityFieldMap.get("review")) match {
-      case (Some(id), Some(review)) =>
-        Some(ActivityReview(id.toString.toLong, review.toString))
-      case _ =>
-        throw new RuntimeException("Unable to convert Map values to Activity Object.")
+      case (Some(id), Some(review)) => Some(ActivityReview(id.toString.toLong, review.toString))
+      case _ => throw InvalidActivityFieldMapValues()
     }
   }
 }

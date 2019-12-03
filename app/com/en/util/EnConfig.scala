@@ -12,27 +12,29 @@ object EnConfig {
 
 case class ElasticConfig(
                           cluster: String,
-                          documentsIndex: String,
+                          activityIndex: String,
+                          userIndex: String,
                           documentsDocType: String,
                           hosts: Seq[String],
                           port: Int,
                           timeoutSeconds: Duration = 10 seconds
                         )
-
 object ElasticConfig {
   def apply(
              cluster: String,
-             documents_index: String,
-             documents_doc_type: String,
+             activityIndex: String,
+             userIndex: String,
+             documentsDocType: String,
              hosts: Seq[String],
              port: Int
            ): ElasticConfig =
-    new ElasticConfig(cluster, documents_index, documents_doc_type, hosts, port)
+    new ElasticConfig(cluster, activityIndex, userIndex, documentsDocType, hosts, port)
 
   def apply(config: Config): ElasticConfig =
     new ElasticConfig(
       config.getString("cluster"),
-      config.getString("documentIndex"),
+      config.getString("activityIndex"),
+      config.getString("userIndex"),
       config.getString("documentDocType"),
       config.getList("hosts").toArray.toSeq.map(_.toString),
       config.getInt("port")

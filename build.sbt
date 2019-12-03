@@ -1,7 +1,7 @@
 name := "sangria-playground"
 description := "An example of GraphQL server written with Play and Sangria."
 
-version := "1.0-SNAPSHOT"
+version := "1.1-SNAPSHOT"
 
 scalaVersion := "2.12.6"
 

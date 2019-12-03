@@ -41,7 +41,7 @@ class HttpRequestAdapter(
           .withRequestTimeout(timeout)
           .withAuth(user, pass, WSAuthScheme.BASIC)
 
-      val futureResponse = requestType match {
+      val futureResponse: Future[WSResponse] = requestType match {
         case PUT => complexRequest.put(body)
         case GET => complexRequest.get()
         case POST => complexRequest.post(body)
