@@ -21,10 +21,19 @@ $ sbt run
 Now you are ready to point your browser to [http://localhost:9000](http://localhost:9000).
 The only prerequisites are [SBT](http://www.scala-sbt.org/download.html) and [Java 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
 
+##How to create a new elastic instance
+01. install docker
+02. run docker pull docker.elastic.co/elasticsearch/elasticsearch:7.4.2
+03. find the image ( docker images )
+04. set the environmental variables
+    sudo sysctl -w vm.max_map_count=262144
+    Incase the system reboot, set it permanently by adding below line to this file >> vi /etc/sysctl.conf
+    vm.max_map_count=262144
 
-## Elastic Configuration
+05. run the image as a single node
+docker run -p 9200:9200 -d=true -e "discovery.type=single-node" <imageid>
 
-how to release
+##how to release the service manually
 01. sbt docker:publishLocal
 02. docker save <imageid> > sangria-playground-<version>.tar
 03. upload the sangria-playground-<version>.tar to the save
@@ -37,6 +46,5 @@ To create a index
 http://localhost:9200/company
 
 curl -u elastic:doNotChange -X POST "localhost:9200/_xpack/security/role/hotel_notes_admin?pretty" -H 'Content-Type: application/json' -d ' "indices": [ { "names": [ "en_activities*"], "privileges": ["all"]}] '
-docker run -e JAVA_OPTS='-Dplay.server.pidfile.path=/dev/null' -m 2048m
-' 
+docker run -p 9000:9000 -e JAVA_OPTS='-Dplay.server.pidfile.path=/dev/null' -m 2048m <imageid>
 

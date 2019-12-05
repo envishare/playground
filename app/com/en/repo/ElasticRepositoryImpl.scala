@@ -149,9 +149,9 @@ class ElasticRepositoryImpl @Inject()(wsClient: WSClient)
                     ): String = {
     val elasticHost = hosts.head.toString
     if (isForSearch && id.nonEmpty) {
-      s"http://ecotrender.com:$port/$indexName/_doc/$id?refresh=true"
+      s"$elasticHost:$port/$indexName/_doc/$id?refresh=true"
     } else {
-      s"http://ecotrender.com:$port/$indexName/_doc/_search/"
+      s"$elasticHost:$port/$indexName/_doc/_search/"
     }
   }
 
