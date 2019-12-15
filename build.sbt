@@ -11,6 +11,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   guice,
+  logback,
   filters,
   "com.typesafe.play" %% "play-ahc-ws" % "2.6.1",
   "org.sangria-graphql" %% "sangria" % "1.4.2",
@@ -19,7 +20,8 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.5" % "test",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.elasticsearch.client" % "transport" % "6.2.3",
-  "org.apache.commons" % "commons-lang3" % "3.9"
+  "org.apache.commons" % "commons-lang3" % "3.9",
+  "org.scalikejdbc" %% "scalikejdbc" % "3.4.0"
 )
 
 routesGenerator := InjectedRoutesGenerator

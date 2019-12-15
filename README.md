@@ -48,3 +48,9 @@ http://localhost:9200/company
 curl -u elastic:doNotChange -X POST "localhost:9200/_xpack/security/role/hotel_notes_admin?pretty" -H 'Content-Type: application/json' -d ' "indices": [ { "names": [ "en_activities*"], "privileges": ["all"]}] '
 docker run -p 9000:9000 -e JAVA_OPTS='-Dplay.server.pidfile.path=/dev/null' -m 2048m <imageid>
 
+
+## follow this to setup loging infrastructure
+https://medium.com/@fchristl/managing-docker-logs-with-elasticsearch-and-kibana-dockerized-of-course-76fadb89363a
+
+## to dockerize ui follow this
+https://www.agiletrailblazers.com/blog/modernized-technology/how-to-dockerize-an-web-application

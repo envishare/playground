@@ -7,6 +7,15 @@
       <pattern>%coloredLevel - %logger - %message%n%xException</pattern>
     </encoder>
   </appender>
+  <appender name="STASH" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logback/redditApp.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logback/redditApp.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+  </appender>
+
 
   <!--
     The logger name is typically the Java/Scala package name.
@@ -17,6 +26,9 @@
 
   <root level="ERROR">
     <appender-ref ref="STDOUT" />
+  </root>
+  <root level="DEBUG">
+    <appender-ref ref="STASH" />
   </root>
 
 </configuration>
