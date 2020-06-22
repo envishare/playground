@@ -148,10 +148,11 @@ class ElasticRepositoryImpl @Inject()(wsClient: WSClient)
                       isForSearch: Boolean = true
                     ): String = {
     val elasticHost = hosts.head.toString
+    val url: String = s"$elasticHost:$port"
     if (isForSearch && id.nonEmpty) {
-      s"$elasticHost:$port/$indexName/_doc/$id?refresh=true"
+      s"$url/$indexName/_doc/${id.get}?refresh=true"
     } else {
-      s"$elasticHost:$port/$indexName/_doc/_search/"
+      s"$url/$indexName/_doc/_search/"
     }
   }
 

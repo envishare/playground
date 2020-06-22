@@ -30,7 +30,20 @@ The only prerequisites are [SBT](http://www.scala-sbt.org/download.html) and [Ja
     Incase the system reboot, set it permanently by adding below line to this file >> vi /etc/sysctl.conf
     vm.max_map_count=262144
 
-05. run the image as a single node
+05. run the image as a 
+
+
+
+
+
+
+
+
+
+
+
+
+single node
 docker run -p 9200:9200 -d=true -e "discovery.type=single-node" <imageid>
 
 ##how to release the service manually
@@ -45,7 +58,7 @@ docker run -p 9200:9200 -d=true -e "discovery.type=single-node" <imageid>
 To create a index
 http://localhost:9200/company
 
-curl -u elastic:doNotChange -X POST "localhost:9200/_xpack/security/role/hotel_notes_admin?pretty" -H 'Content-Type: application/json' -d ' "indices": [ { "names": [ "en_activities*"], "privileges": ["all"]}] '
+curl -X POST "localhost:9200/_xpack/security/role/hotel_notes_admin?pretty" -H 'Content-Type: application/json' -d ' "indices": [ { "names": [ "en_activities*"], "privileges": ["all"]}] '
 docker run -p 9000:9000 -e JAVA_OPTS='-Dplay.server.pidfile.path=/dev/null' -m 2048m <imageid>
 
 
